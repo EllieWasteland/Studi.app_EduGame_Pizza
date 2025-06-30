@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pizza Fracciones: El Juego | Versión Corregida</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.7.77/Tone.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&family=Fredoka+One&display=swap" rel="stylesheet">
+    <style>
+        /* --- Estilos Base y Diseño --- */
+        body {
+            font-family: 'Montserrat', sans-serif;
+            background-image: url('https://static.vecteezy.com/system/resources/thumbnails/003/498/690/small/wood-texture-background-wood-planks-or-wood-wall-free-photo.jpg');
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+            color: #1e293b;
+            overflow: hidden; 
+        }
+        
+        .font-fredoka { font-family: 'Fredoka One', cursive; }
+        .no-select {
+            -webkit-touch-callout: none; -webkit-user-select: none; -khtml-user-select: none;
+            -moz-user-select: none; -ms-user-select: none; user-select: none;
+        }
+
+        .glass-effect {
+            background: rgba(255, 255, 255, 0.25); 
+            backdrop-filter: blur(12px) saturate(180%);
+            -webkit-backdrop-filter: blur(12px) saturate(180%);
+            border-radius: 1rem; /* 16px */
+            border: 1px solid rgba(255, 255, 255, 0.35);
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
+        }
+
+        /* --- Estilos de Componentes --- */
+        .pizza-slice { cursor: pointer; transition: transform 0.1s, filter 0.2s; }
+        .pizza-slice:hover { transform: scale(1.03); filter: brightness(1.15); }
+
+        .btn {
+            transition: all 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            font-weight: 600;
+        }
+        .btn:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 15px rgba(0,0,0,0.2);
+            filter: brightness(1.1);
+        }
+        .btn:active {
+            transform: translateY(0px);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .cut-btn {
+             background: rgba(255, 255, 255, 0.2);
+        }
+        .cut-btn.selected {
+            background-color: #f59e0b;
+            color: white;
+            border-color: #f59e0b;
+            transform: scale(1.1) translateY(-2px);
+        }
+
+        .ingredient-btn {
+            background: rgba(255, 255, 255, 0.4);
+            border-width: 2px;
+            border-color: transparent;
+        }
+        .ingredient-btn.selected {
+            transform: scale(1.15) translateY(-2px);
+            box-shadow: 0 0 20px 5px rgba(251, 191, 36, 0.8);
+            border-color: #fbbf24;
+            background-color: rgba(251, 191, 36, 0.3);
+        }
+
+        .soda-btn { border-width: 2px; }
+        .soda-btn.selected {
+            transform: scale(1.15) translateY(-2px);
+            box-shadow: 0 0 20px 5px rgba(255, 255, 255, 0.8);
+        }
+
+        /* --- Estilos del Modal --- */
+        .modal { z-index: 40; }
+        .modal-content { 
+            transition: opacity 0.3s ease, transform 0.3s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+            display: flex;
+            flex-direction: column;
+            max-height: 90vh;
+        }
+        .modal.hidden .modal-content { transform: scale(0.7); opacity: 0; }
+        
+        .score-pop { animation: pop 0.3s ease-out; }
+        @keyframes pop {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.3); color: #84cc16; }
+            100% { transform: scale(1); }
+        }
+
+        .speech-bubble { position: relative; padding: 1.5rem; }
+        .speech-bubble:after {
+            content: ''; position: absolute; bottom: 0; left: 50%; width: 0; height: 0;
+            border: 20px solid transparent; 
+            border-top-color: rgba(255, 255, 255, 0.35);
+            border-bottom: 0; border-left: 0; margin-left: -10px; margin-bottom: -20px;
+        }
+        
+        #pizza-game-view h2, #soda-game-view h2, #pizza-game-view h3, #soda-game-view h3 {
+             text-shadow: 0 1px 3px rgba(0,0,0,0.1);
+             color: #1e293b;
+        }
+
+        /* --- Pantalla de Carga --- */
+        #splash-screen { transition: opacity 0.8s ease-out; }
+        @keyframes pulse { 50% { transform: scale(1.05); } }
+        .splash-pulse { animation: pulse 2s infinite ease-in-out; }
+    </style>
+</head>
+<body class="no-select">
+
+    <!-- Pantalla de Carga -->
+    <div id="splash-screen" class="fixed inset-0 bg-slate-900 flex flex-col items-center justify-center z-50 text-white select-none">
+        <div class="relative text-center flex flex-col items-center">
+            <div class="absolute -inset-8 border-4 border-amber-400 rounded-full splash-pulse"></div>
+            <div class="relative p-8 rounded-full font-fredoka">
+                <h1 class="text-4xl md:text-5xl text-amber-300 drop-shadow-lg">Studi.app | EduGames</h1>
+            </div>
+            <div class="mt-8">
+                <p class="text-slate-400 text-sm tracking-widest">Pre-access by <span class="font-semibold text-slate-300">Vitreum</span></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Contenedor Principal del Juego -->
+    <div id="game-container" class="h-screen w-full flex flex-col items-center p-4 lg:p-8 hidden overflow-y-auto">
+        
+        <header class="w-full max-w-7xl mx-auto glass-effect p-4 mb-6 text-center lg:text-left lg:flex justify-between items-center flex-shrink-0">
+            <div>
+                 <h1 class="text-2xl md:text-3xl font-fredoka text-slate-800 drop-shadow">Pizza y Refrescos</h1>
+                 <p class="font-fredoka text-slate-700 text-xl">Día <span id="day-counter">1</span></p>
+            </div>
+            <div class="text-right mt-4 lg:mt-0">
+                <div class="text-xl md:text-2xl font-bold font-fredoka text-green-700 drop-shadow-sm">Puntos: <span id="score">0</span></div>
+            </div>
+        </header>
+
+        <main class="w-full max-w-7xl mx-auto flex flex-col lg:flex-row gap-8 flex-grow">
+            <!-- Panel Izquierdo: Espacio de Juego -->
+            <div class="flex-1 glass-effect p-6 flex flex-col items-center justify-center relative">
+                <!-- Vistas del Juego -->
+                <div id="pizza-game-view" class="w-full">
+                    <div class="relative z-10">
+                        <h2 class="text-center text-2xl md:text-3xl font-bold font-fredoka mb-6 text-slate-800">Mesa para Preparar Pizzas</h2>
+                        <div id="pizza-area" class="w-full max-w-[380px] aspect-square mb-6 mx-auto"><svg id="pizza-svg" viewBox="0 0 200 200" style="filter: drop-shadow(0 10px 15px rgba(0,0,0,0.2));"></svg></div>
+                        <div class="w-full space-y-6">
+                            <div><h3 class="text-center font-bold mb-3 text-lg text-slate-700">1. Corta la Pizza</h3><div id="cut-options" class="flex justify-center gap-2 md:gap-4 flex-wrap"></div></div>
+                            <div><h3 class="text-center font-bold mb-3 text-lg text-slate-700">2. Ponle Ingredientes</h3><div id="ingredient-options" class="flex justify-center gap-3 md:gap-5"></div></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="soda-game-view" class="w-full hidden">
+                     <h2 class="text-center text-2xl md:text-3xl font-bold font-fredoka mb-6 text-slate-800">Máquina de Refrescos</h2>
+                    <div class="flex justify-center items-center mb-6">
+                        <div class="relative w-40 h-64 border-4 border-slate-400/50 rounded-t-2xl rounded-b-lg bg-white/20 overflow-hidden">
+                            <div id="soda-liquid" class="absolute bottom-0 w-full bg-red-500 transition-all duration-100 ease-linear"></div>
+                            <div class="absolute bottom-1/4 w-full h-px bg-slate-500/50 flex items-center"><span class="text-xs -ml-6 text-slate-700 font-bold">1/4</span></div>
+                            <div class="absolute bottom-1/2 w-full h-px bg-slate-500/50 flex items-center"><span class="text-xs -ml-6 text-slate-700 font-bold">1/2</span></div>
+                            <div class="absolute bottom-3/4 w-full h-px bg-slate-500/50 flex items-center"><span class="text-xs -ml-6 text-slate-700 font-bold">3/4</span></div>
+                        </div>
+                    </div>
+                     <div class="w-full"><h3 class="text-center font-bold mb-3 text-lg text-slate-700">1. Elige el Sabor</h3><div id="soda-options" class="flex justify-center gap-3 md:gap-5"></div></div>
+                </div>
+
+                <div class="text-center relative z-10 mt-auto pt-6">
+                    <button id="serve-button" class="btn serve-btn font-fredoka text-xl md:text-2xl bg-green-500 text-white px-10 py-4 rounded-full shadow-lg disabled:bg-gray-400/50 disabled:cursor-not-allowed">¡Servir!</button>
+                </div>
+            </div>
+            
+            <!-- Panel Derecho: Cliente -->
+            <div class="w-full lg:w-96 glass-effect p-6 flex flex-col items-center justify-center text-white flex-shrink-0">
+                <h2 class="text-2xl md:text-3xl font-bold font-fredoka mb-6 text-slate-800 drop-shadow z-10">Cliente</h2>
+                <div class="flex flex-col items-center gap-4 z-10 w-full">
+                     <div id="customer-face" class="w-32 h-32 rounded-full bg-yellow-300 border-4 border-white/50 flex items-center justify-center text-6xl transition-transform duration-300 shadow-lg"><span>😐</span></div>
+                    <div class="speech-bubble glass-effect w-full min-h-[120px] text-slate-800"><p id="order-text" class="text-center text-lg font-semibold">...</p></div>
+                </div>
+            </div>
+        </main>
+        
+        <footer class="w-full max-w-7xl mx-auto text-center mt-6 flex-shrink-0">
+             <div class="w-full max-w-lg mx-auto mb-2 px-4">
+                <div class="bg-white/30 rounded-full h-4"><div id="progress-bar" class="bg-lime-500 h-4 rounded-full transition-all duration-500" style="width: 0%"></div></div>
+                <p class="text-center text-sm font-bold mt-1 text-white/90 text-shadow-lg">Clientes Atendidos: <span id="progress-text">0 / 5</span></p>
+            </div>
+            <button id="restart-progress-btn" class="text-xs text-white/70 hover:text-white hover:underline bg-black/20 px-3 py-1 rounded-full">Reiniciar Juego</button>
+        </footer>
+    </div>
+    
+    <!-- Modales -->
+    <div id="day-start-modal" class="modal hidden fixed inset-0 bg-black/75 flex items-center justify-center p-4">
+        <div class="modal-content glass-effect max-w-lg w-full text-slate-800">
+            <div class="p-6 md:p-8 flex-grow overflow-y-auto">
+                <h3 id="day-start-title" class="text-3xl md:text-4xl font-fredoka mb-4"></h3>
+                <p id="day-start-story" class="text-base md:text-lg leading-relaxed"></p>
+            </div>
+            <div class="p-4 bg-white/20 border-t border-white/30 text-center flex-shrink-0">
+                <button id="day-start-btn" class="btn text-lg bg-amber-500 text-white px-8 py-3 rounded-full shadow-lg">¡A Cocinar!</button>
+            </div>
+        </div>
+    </div>
+    <div id="result-modal" class="modal hidden fixed inset-0 bg-black/75 flex items-center justify-center p-4">
+        <div class="modal-content glass-effect max-w-md w-full text-center">
+            <div class="p-6 md:p-8 flex-grow">
+                <div id="result-icon" class="text-7xl md:text-8xl mb-4"></div>
+                <h3 id="result-title" class="text-3xl md:text-4xl font-fredoka mb-2"></h3>
+                <p id="result-message" class="text-slate-700 font-semibold text-base md:text-lg mb-6"></p>
+                <div id="completion-code-wrapper" class="hidden my-4">
+                    <p class="text-sm text-slate-600">¡Ganaste! Tu código secreto es:</p>
+                    <p id="completion-code" class="text-xl md:text-2xl font-bold font-mono bg-white/40 p-2 rounded-lg"></p>
+                </div>
+            </div>
+            <div class="p-4 bg-white/20 border-t border-white/30 text-center flex-shrink-0">
+                 <button id="result-button" class="btn text-lg bg-amber-500 text-white px-8 py-3 rounded-full shadow-lg">Siguiente</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        // --- DATOS Y TEXTOS DEL JUEGO ---
+        const INGREDIENTS = { pepperoni: { name: 'Pepperoni', color: '#e63946' }, queso: { name: 'Queso', color: '#fca311' }, salsa: { name: 'Salsa', color: '#c1121f' }, aceitunas: { name: 'Aceitunas', color: '#333d29' }};
+        const SODAS = { cola: { name: 'Cola', color: '#3d2b24', emoji: '🥤' }, naranja: { name: 'Naranja', color: '#f7a00f', emoji: '🍊' }, limon: { name: 'Limón', color: '#d0f040', emoji: '🍋' }, uva: { name: 'Uva', color: '#6a0dad', emoji: '🍇' }};
+        const EMOJIS = { pepperoni: '🍕', queso: '🧀', salsa: '🍅', aceitunas: '🫒'};
+        const CUT_OPTIONS = [1, 2, 3, 4, 6, 8];
+        const CUSTOMERS_PER_DAY = 5;
+        const GAME_DAYS = [
+            { type: 'pizza', story: "¡Bienvenido a tu primer día! Hoy prepararemos pizzas muy fáciles. ¡Aprenderás a cortarlas justo por la mitad!", orders: [ { text: "¡Hola! Quiero una pizza con la mitad de pepperoni.", slices: 2, topping: 'pepperoni', count: 1 }, { text: "¡Para mí una pizza! Con la mitad de salsa, por favor.", slices: 2, topping: 'salsa', count: 1 }, { text: "¡Quiero una pizza entera, toda de queso!", slices: 1, topping: 'queso', count: 1 }, { text: "Una pizza con mitad pepperoni y mitad queso.", slices: 2, special: 'dual', toppings: [{topping: 'pepperoni', count: 1}, {topping: 'queso', count: 1}]}, { text: "¡Para llevar! Una pizza con la mitad de aceitunas.", slices: 2, topping: 'aceitunas', count: 1 }, ] },
+            { type: 'pizza', story: "¡Lo hiciste increíble! Hoy, los clientes quieren la pizza en 4 partes iguales. ¡Presta atención a los pedidos!", orders: [ { text: "¡Quiero 1 de 4 pedazos de la pizza con queso!", slices: 4, topping: 'queso', count: 1 }, { text: "¡Necesito 3 de 4 pedazos de la pizza con salsa!", slices: 4, topping: 'salsa', count: 3 }, { text: "¡Dame 2 de 4 pedazos con pepperoni! ¡Es la mitad!", slices: 4, topping: 'pepperoni', count: 2 }, { text: "Una parte con aceitunas y otra con queso. ¡Gracias!", slices: 4, special: 'dual', toppings: [{topping: 'aceitunas', count: 1}, {topping: 'queso', count: 1}]}, { text: "¡Una pizza entera con salsa, por favor!", slices: 1, topping: 'salsa', count: 1 }, ] },
+            { type: 'pizza', story: "¡Tu pizzería es un éxito! Hoy cortaremos en 3 y 6 pedazos. ¡Como en una fiesta! ¡Tú puedes!", orders: [ { text: "Una pizza en 3 partes, ¡y 1 parte con queso!", slices: 3, topping: 'queso', count: 1 }, { text: "¡Quiero 2 de 3 partes de la pizza con salsa!", slices: 3, topping: 'salsa', count: 2 }, { text: "¡Corta la pizza en 6! Y ponle pepperoni a 1 pedacito.", slices: 6, topping: 'pepperoni', count: 1 }, { text: "¡Ponle aceitunas a 3 de los 6 pedazos!", slices: 6, topping: 'aceitunas', count: 3 }, { text: "¡Para todos! ¡5 de 6 pedazos con queso!", slices: 6, topping: 'queso', count: 5 }, ] },
+            { type: 'soda', story: "¡Qué emoción! Instalamos una máquina de refrescos. ¡Llena los vasos hasta donde te pidan los clientes!", orders: [ { text: "¡Qué sed! Un vaso de cola hasta la mitad, por favor.", fraction: 0.5, soda: 'cola' }, { text: "Un vaso de naranja, pero solo hasta la primera rayita (1/4).", fraction: 0.25, soda: 'naranja' }, { text: "¡Quiero un vaso de limón casi lleno! Hasta la raya de arriba (3/4).", fraction: 0.75, soda: 'limon' }, { text: "Un vaso de uva, por favor, lleno hasta la mitad.", fraction: 0.5, soda: 'uva' }, { text: "¡Un vaso de cola hasta el tope!", fraction: 1.0, soda: 'cola' }, ] },
+            { type: 'pizza', story: "¡Ya eres un experto en pizzas! Demuestra lo que sabes con estos últimos pedidos.", orders: [ { text: "¡Una pizza en 8 pedazos! Ponle queso a 3 de ellos.", slices: 8, topping: 'queso', count: 3 }, { text: "¡Quiero 5 de 8 pedazos de la pizza con pepperoni!", slices: 8, topping: 'pepperoni', count: 5 }, { text: "Una pizza en 8. Ponle aceitunas a 1 pedazo y salsa a otros 2.", slices: 8, special: 'dual', toppings: [{topping: 'aceitunas', count: 1}, {topping: 'salsa', count: 2}]}, { text: "¡7 de 8 pedazos con mucho queso!", slices: 8, topping: 'queso', count: 7 }, { text: "¡Una pizza entera de pepperoni!", slices: 1, topping: 'pepperoni', count: 1 }, ] }
+        ];
+
+        // --- MOTOR DE AUDIO (Tone.js) ---
+        // *** FIX: Se crean los instrumentos una sola vez para reutilizarlos y evitar problemas de memoria. ***
+        const synths = {
+            click: new Tone.MembraneSynth().toDestination(),
+            topping: new Tone.PluckSynth().toDestination(),
+            success: new Tone.PolySynth(Tone.Synth).toDestination(),
+            failure: new Tone.Synth({ oscillator: { type: "square" } }).toDestination(),
+            serve: new Tone.MetalSynth().toDestination(),
+            pour: {
+                noise: new Tone.Noise("pink"),
+                filter: new Tone.AutoFilter("4n").toDestination()
+            }
+        };
+        // Conectar el ruido al filtro, y el filtro al destino (altavoces)
+        synths.pour.noise.connect(synths.pour.filter);
+
+        const sounds = {
+            click: () => { try { synths.click.triggerAttackRelease("C2", "8n", Tone.now()); } catch(e){} },
+            topping: () => { try { synths.topping.triggerAttackRelease("C4", "8n", Tone.now()); } catch(e){} },
+            success: () => { try { synths.success.triggerAttackRelease(["C4", "E4", "G4"], "8n"); } catch(e){} },
+            failure: () => { try { synths.failure.triggerAttackRelease("C3", "4n"); } catch(e){} },
+            serve: () => { try { synths.serve.triggerAttackRelease("C4", "16n", Tone.now()); } catch(e){} },
+            startPouring: () => { try { synths.pour.filter.start(); synths.pour.noise.start(); } catch(e) {} },
+            stopPouring: () => { try { synths.pour.noise.stop(); synths.pour.filter.stop(); } catch(e) {} }
+        };
+
+        // --- LÓGICA DEL JUEGO ---
+        const game = {
+            isStarted: false, score: 0, currentDay: 1, customerCount: 0, currentOrder: null,
+            pizzaState: { cutInto: 0, slices: [], selectedIngredient: null },
+            sodaState: { fillLevel: 0, selectedSoda: null, isPouring: false },
+            
+            init() {
+                this.loadProgress();
+                this.setupControls();
+                this.showDayStartScreen();
+                // Iniciar audio en la primera interacción del usuario
+                document.body.addEventListener('click', () => Tone.start(), { once: true });
+            },
+
+            loadProgress() {
+                const savedDay = localStorage.getItem('pizzaFraccionesDay');
+                this.currentDay = savedDay ? parseInt(savedDay) : 1;
+                document.getElementById('day-counter').textContent = this.currentDay;
+            },
+
+            saveProgress() {
+                localStorage.setItem('pizzaFraccionesDay', this.currentDay);
+            },
+            
+            resetProgress() {
+                this.showModal('result', false, '¿Reiniciar Juego?', '¿Estás seguro que quieres borrar tu avance y empezar desde el Día 1?', 'Sí, reiniciar', () => {
+                    localStorage.removeItem('pizzaFraccionesDay');
+                    window.location.reload();
+                });
+            },
+
+            showDayStartScreen() {
+                const dayData = GAME_DAYS[this.currentDay - 1];
+                if (!dayData) {
+                    const code = Math.random().toString(36).substring(2, 8).toUpperCase();
+                    this.showModal('result', true, "¡Felicidades!", "¡Completaste todos los días! ¡Eres un Chef de Fracciones profesional!", "Jugar de Nuevo", this.resetProgress, code);
+                    return;
+                }
+                this.showModal('day-start', true, `Día ${this.currentDay}`, dayData.story, "¡A Cocinar!", () => this.startDay());
+            },
+            
+            startDay() {
+                this.customerCount = 0;
+                this.score = 0; // Reiniciar puntos cada día
+                document.getElementById('score').textContent = this.score;
+                this.updateProgressBar();
+                this.prepareWorkspace();
+                this.nextOrder();
+            },
+
+            prepareWorkspace() {
+                const dayType = GAME_DAYS[this.currentDay - 1].type;
+                document.getElementById('pizza-game-view').classList.toggle('hidden', dayType !== 'pizza');
+                document.getElementById('soda-game-view').classList.toggle('hidden', dayType !== 'soda');
+            },
+
+            setupControls() {
+                // Configuración de botones de corte
+                const cutContainer = document.getElementById('cut-options');
+                cutContainer.innerHTML = CUT_OPTIONS.map(num => `<button data-cuts="${num}" class="btn cut-btn text-lg text-slate-800 rounded-lg px-5 py-2 shadow-sm">${num === 1 ? 'Entera' : num}</button>`).join('');
+                cutContainer.addEventListener('click', e => {
+                    const btn = e.target.closest('.cut-btn');
+                    if (btn) this.selectCut(parseInt(btn.dataset.cuts), btn);
+                });
+                
+                // Configuración de botones de ingredientes
+                const ingContainer = document.getElementById('ingredient-options');
+                ingContainer.innerHTML = Object.keys(INGREDIENTS).map(key => `<button data-ingredient="${key}" class="btn ingredient-btn w-16 h-16 rounded-full shadow-md flex items-center justify-center text-3xl">${EMOJIS[key]}</button>`).join('');
+                ingContainer.addEventListener('click', e => {
+                    const btn = e.target.closest('.ingredient-btn');
+                    if (btn) this.selectIngredient(btn.dataset.ingredient, btn);
+                });
+                
+                // Configuración de botones de refrescos
+                const sodaContainer = document.getElementById('soda-options');
+                sodaContainer.innerHTML = Object.keys(SODAS).map(key => `<button data-soda="${key}" class="btn soda-btn w-16 h-16 rounded-full shadow-md flex items-center justify-center text-3xl" style="background-color: ${SODAS[key].color}40; border-color: ${SODAS[key].color};">${SODAS[key].emoji}</button>`).join('');
+                sodaContainer.addEventListener('click', e => {
+                    const btn = e.target.closest('.soda-btn');
+                    if (btn) this.selectSoda(btn.dataset.soda, btn);
+                });
+                
+                // Lógica del botón "Servir" para móvil y escritorio
+                const serveBtn = document.getElementById('serve-button');
+
+                // Lógica para servir la pizza (un solo click/tap)
+                serveBtn.addEventListener('click', () => { 
+                    if (GAME_DAYS[this.currentDay - 1].type === 'pizza') {
+                        sounds.serve();
+                        this.checkOrder();
+                    }
+                });
+
+                // Lógica para servir refresco (mantener presionado)
+                const startPour = (e) => {
+                    if (GAME_DAYS[this.currentDay - 1].type === 'soda') {
+                        e.preventDefault();
+                        this.startPouring();
+                    }
+                };
+                const stopPour = (e) => {
+                    if (GAME_DAYS[this.currentDay - 1].type === 'soda' && this.sodaState.isPouring) {
+                        e.preventDefault();
+                        this.stopPouring();
+                    }
+                };
+
+                serveBtn.addEventListener('mousedown', startPour);
+                serveBtn.addEventListener('mouseup', stopPour);
+                serveBtn.addEventListener('mouseleave', stopPour);
+                serveBtn.addEventListener('touchstart', startPour, { passive: false });
+                serveBtn.addEventListener('touchend', stopPour);
+
+                // Botón de reinicio
+                document.getElementById('restart-progress-btn').addEventListener('click', () => this.resetProgress());
+            },
+            
+            resetWorkspace() {
+                this.pizzaState = { cutInto: 0, slices: [], selectedIngredient: null };
+                document.querySelectorAll('.cut-btn.selected, .ingredient-btn.selected').forEach(b => b.classList.remove('selected'));
+                this.drawPizza();
+                this.sodaState = { fillLevel: 0, selectedSoda: null, isPouring: false };
+                document.querySelectorAll('.soda-btn.selected').forEach(b => b.classList.remove('selected'));
+                this.updateSodaLiquid();
+            },
+
+            nextOrder() {
+                this.resetWorkspace();
+                this.currentOrder = GAME_DAYS[this.currentDay - 1].orders[this.customerCount];
+                document.getElementById('order-text').textContent = this.currentOrder.text;
+                this.updateCustomerFace('thinking');
+                document.getElementById('serve-button').disabled = false;
+            },
+            
+            updateProgressBar() {
+                const percentage = (this.customerCount / CUSTOMERS_PER_DAY) * 100;
+                document.getElementById('progress-bar').style.width = `${percentage}%`;
+                document.getElementById('progress-text').textContent = `${this.customerCount} / ${CUSTOMERS_PER_DAY}`;
+            },
+
+            // --- Lógica de Dibujo ---
+            selectCut(cuts, el) { 
+                sounds.click(); 
+                this.pizzaState = {cutInto: cuts, slices: Array.from({length: cuts}, (_,i) => ({id:i, topping:null})), selectedIngredient: this.pizzaState.selectedIngredient}; 
+                document.querySelectorAll('.cut-btn.selected').forEach(b => b.classList.remove('selected')); 
+                el.classList.add('selected'); 
+                this.drawPizza(); 
+            },
+            selectIngredient(key, el) { 
+                sounds.click(); 
+                this.pizzaState.selectedIngredient = key; 
+                document.querySelectorAll('.ingredient-btn.selected').forEach(b => b.classList.remove('selected')); 
+                el.classList.add('selected'); 
+            },
+            applyTopping(sliceIndex) { 
+                if (!this.pizzaState.selectedIngredient) { 
+                    this.showModal('result', false, '¡Espera!', '¡Primero elige qué ingrediente quieres poner!', '¡OK!'); return; 
+                } 
+                sounds.topping(); 
+                this.pizzaState.slices[sliceIndex].topping = this.pizzaState.slices[sliceIndex].topping === this.pizzaState.selectedIngredient ? null : this.pizzaState.selectedIngredient; 
+                this.drawPizza(); 
+            },
+            drawPizza() { 
+                const svg = document.getElementById('pizza-svg'); 
+                svg.innerHTML = ''; 
+                const base = (tag, attrs) => {const el = document.createElementNS('http://www.w3.org/2000/svg', tag); for(const k in attrs) el.setAttribute(k, attrs[k]); return el;};
+                svg.appendChild(base('circle',{cx:100,cy:100,r:90,fill:'#fde4a8'})); 
+                if (this.pizzaState.cutInto > 0) {
+                    const numSlices = this.pizzaState.cutInto; 
+                    for (let i=0; i<numSlices; i++) {
+                        const sliceGroup = base('g', {class:'pizza-slice'}); 
+                        sliceGroup.onclick = () => this.applyTopping(i); 
+                        let slicePath; 
+                        if (numSlices === 1) {
+                            slicePath = base('circle', {cx:100,cy:100,r:84});
+                        } else {
+                            const angleStep = 360/numSlices, startAngle=i*angleStep, endAngle=(i+1)*angleStep;
+                            const start=this.polarToCartesian(100,100,84,endAngle), end=this.polarToCartesian(100,100,84,startAngle); 
+                            slicePath = base('path', {d:`M 100 100 L ${start.x} ${start.y} A 84 84 0 ${angleStep > 180 ? 1 : 0} 0 ${end.x} ${end.y} Z`});
+                        } 
+                        slicePath.setAttribute('fill', '#f1895a'); 
+                        sliceGroup.appendChild(slicePath); 
+                        const currentTopping = this.pizzaState.slices[i].topping; 
+                        if (currentTopping) this.drawToppingsOnSlice(sliceGroup, i, numSlices, currentTopping); 
+                        svg.appendChild(sliceGroup);
+                    }
+                } 
+                if (this.pizzaState.cutInto > 1) {
+                    const numSlices = this.pizzaState.cutInto, angleStep = 360 / numSlices;
+                    for (let i = 0; i < numSlices; i++) {
+                        const startAngle = i * angleStep;
+                        const end = this.polarToCartesian(100, 100, 90, startAngle);
+                        svg.appendChild(base('line', { x1: 100, y1: 100, x2: end.x, y2: end.y, stroke: '#4a2c2a', 'stroke-width': '3', 'stroke-linecap': 'round' }));
+                    }
+                }
+                svg.appendChild(base('circle', {cx:100,cy:100,r:90,'stroke-width':12,stroke:'#e1a242',fill:'none'}));
+            },
+            drawToppingsOnSlice(group, sliceIndex, numSlices, topping) {
+                const base = (tag, attrs) => {const el = document.createElementNS('http://www.w3.org/2000/svg', tag); for(const k in attrs) el.setAttribute(k, attrs[k]); return el;};
+                const toppingColor = INGREDIENTS[topping].color;
+                if (topping === 'salsa') { for (let i = 0; i < 5; i++) { const p = this.getRandomPointInSlice(sliceIndex, numSlices, 82); group.appendChild(base('circle',{cx:p.x,cy:p.y,r:Math.random()*4+2,fill:toppingColor,opacity:'0.5'})); } return; }
+                if (topping === 'queso') { for (let i = 0; i < 15; i++) { const p = this.getRandomPointInSlice(sliceIndex, numSlices, 82); group.appendChild(base('circle',{cx:p.x,cy:p.y,r:Math.random()*5+3,fill:toppingColor,opacity:'0.7'})); } return; }
+                const count = (topping === 'pepperoni') ? 3 : 4;
+                const radius = (topping === 'pepperoni') ? 8 : 4;
+                for (let i = 0; i < count; i++) {
+                    const p = this.getRandomPointInSlice(sliceIndex, numSlices, 75);
+                    group.appendChild(base('circle',{cx:p.x,cy:p.y,r:radius,fill:toppingColor}));
+                    if (topping === 'aceitunas') { group.appendChild(base('circle',{cx:p.x,cy:p.y,r:radius/2,fill:'#f1895a'})); }
+                }
+            },
+            selectSoda(sodaKey, el) { sounds.click(); this.sodaState.selectedSoda = sodaKey; document.querySelectorAll('.soda-btn.selected').forEach(b => b.classList.remove('selected')); el.classList.add('selected'); this.updateSodaLiquid(); },
+            updateSodaLiquid() { const liquid = document.getElementById('soda-liquid'); if(!this.sodaState.selectedSoda){ liquid.style.backgroundColor='transparent'; return; } liquid.style.backgroundColor=SODAS[this.sodaState.selectedSoda].color; liquid.style.height=`${this.sodaState.fillLevel * 100}%`; },
+            
+            // *** FIX: Lógica de vertido de refresco actualizada ***
+            startPouring() { 
+                if (this.sodaState.isPouring || !this.sodaState.selectedSoda) return; 
+                this.sodaState.isPouring = true; 
+                sounds.startPouring();
+                const pourFn = () => { 
+                    if (!this.sodaState.isPouring) { 
+                        sounds.stopPouring();
+                        return;
+                    }
+                    this.sodaState.fillLevel = Math.min(1, this.sodaState.fillLevel + 0.01); 
+                    this.updateSodaLiquid(); 
+                    requestAnimationFrame(pourFn);
+                }; 
+                requestAnimationFrame(pourFn);
+            },
+            stopPouring() { 
+                if (!this.sodaState.isPouring) return; 
+                this.sodaState.isPouring = false;
+                // La animación se detendrá y limpiará el sonido en el siguiente frame.
+                setTimeout(() => this.checkOrder(), 200); 
+            },
+            
+            // --- Lógica de Verificación ---
+            getRandomPointInSlice(sliceIndex, numSlices, maxRadius){ if (numSlices === 1) { const angle = Math.random()*360, radius = Math.sqrt(Math.random()) * maxRadius; return this.polarToCartesian(100, 100, radius, angle); } const angleStep = 360/numSlices, startAngle = sliceIndex * angleStep; const randomAngle = startAngle + Math.random()*angleStep, randomRadius = Math.sqrt(Math.random())*maxRadius; return this.polarToCartesian(100,100,randomRadius,randomAngle); },
+            polarToCartesian(cx, cy, r, angle){ const rad = (angle - 90) * Math.PI / 180.0; return {x: cx + (r * Math.cos(rad)), y: cy + (r * Math.sin(rad))}; },
+            checkOrder() { if (GAME_DAYS[this.currentDay-1].type === 'pizza') { this.checkPizzaOrder(); } else if (GAME_DAYS[this.currentDay-1].type === 'soda') { this.checkSodaOrder(); } },
+            checkPizzaOrder() {
+                let isCorrect = false, errorType = "Revisa los ingredientes.";
+                if (this.pizzaState.cutInto !== this.currentOrder.slices) { errorType = `El cliente pidió la pizza en ${this.currentOrder.slices} ${this.currentOrder.slices === 1 ? 'parte' : 'partes'}.`; } 
+                else if (this.currentOrder.special === 'dual') { const counts = this.pizzaState.slices.reduce((acc,s)=>{if(s.topping)acc[s.topping]=(acc[s.topping]||0)+1;return acc},{}); const correctToppings = this.currentOrder.toppings.every(t=>counts[t.topping]===t.count); const totalToppings = this.currentOrder.toppings.reduce((sum,t)=>sum+t.count,0); const studentTotalToppings = this.pizzaState.slices.filter(s=>s.topping).length; isCorrect = correctToppings && (totalToppings === studentTotalToppings); } 
+                else { const topped = this.pizzaState.slices.filter(s=>s.topping===this.currentOrder.topping).length; const otherToppings = this.pizzaState.slices.filter(s=>s.topping&&s.topping!==this.currentOrder.topping).length; if (topped === this.currentOrder.count && otherToppings === 0) isCorrect = true; }
+                if (isCorrect) this.handleCorrect(); else this.handleIncorrect(errorType);
+            },
+            checkSodaOrder() {
+                let isCorrect = false;
+                let errorType = "Revisa el sabor del refresco.";
+                document.getElementById('serve-button').disabled = true; 
+                if (this.sodaState.selectedSoda !== this.currentOrder.soda) { errorType = "Elegiste el sabor equivocado."; } 
+                else { const diff = Math.abs(this.sodaState.fillLevel - this.currentOrder.fraction); if (diff <= 0.08) { isCorrect = true; } else { errorType = this.sodaState.fillLevel > this.currentOrder.fraction ? "Llenaste el vaso de más." : "No llenaste el vaso lo suficiente."; } } 
+                if(isCorrect)this.handleCorrect();else this.handleIncorrect(errorType); 
+            },
+            
+            // --- Manejadores de UI/UX ---
+            handleCorrect() {
+                sounds.success(); this.score += 10; const scoreEl = document.getElementById('score'); scoreEl.textContent = this.score; scoreEl.classList.add('score-pop'); scoreEl.onanimationend = () => scoreEl.classList.remove('score-pop'); this.updateCustomerFace('happy'); this.customerCount++; this.updateProgressBar(); 
+                if (this.customerCount >= CUSTOMERS_PER_DAY) { this.showModal('result',true,"¡Día Completado!",`¡Excelente trabajo! Atendiste a todos los clientes de hoy.`, "¡Siguiente Día!",() => { this.currentDay++; this.saveProgress(); document.getElementById('day-counter').textContent=this.currentDay; this.showDayStartScreen() });
+                } else { this.showModal('result',true,"¡Genial!","¡Al cliente le encantó tu orden!","¡Otro Cliente!",()=>this.nextOrder()); }
+            },
+            handleIncorrect(errorType) {
+                sounds.failure(); this.updateCustomerFace('sad'); 
+                this.showModal('result',false,'¡Uy! Intenta de nuevo',`Casi lo logras. ${errorType}`,"Corregir",() => { document.getElementById('serve-button').disabled=false; this.updateCustomerFace('thinking'); if(GAME_DAYS[this.currentDay-1].type==='soda'){ this.sodaState.fillLevel=0; this.updateSodaLiquid(); } });
+            },
+            updateCustomerFace(mood){
+                const face = document.getElementById('customer-face'); face.innerHTML=`<span>${{happy:'😄',sad:'😕',thinking:'🤔'}[mood]}</span>`; face.style.transform = mood === 'happy' ? 'scale(1.2) rotate(10deg)' : 'scale(1)';
+            },
+            showModal(type, isSuccess, titleText, messageText, buttonText, callback, completionCode = null) {
+                const isResult = type === 'result';
+                const modal = document.getElementById(isResult ? 'result-modal' : 'day-start-modal');
+                const title = document.getElementById(isResult ? 'result-title' : 'day-start-title');
+                const msg = document.getElementById(isResult ? 'result-message' : 'day-start-story');
+                const btn = document.getElementById(isResult ? 'result-button' : 'day-start-btn');
+                title.textContent = titleText;
+                msg.textContent = messageText;
+                btn.textContent = buttonText;
+                if (isResult) {
+                    const icon = document.getElementById('result-icon');
+                    icon.textContent = isSuccess ? '🎉' : '🤔';
+                    title.style.color = isSuccess ? '#059669' : '#b91c1c';
+                    const codeWrapper = document.getElementById('completion-code-wrapper');
+                    if (completionCode) { document.getElementById('completion-code').textContent = completionCode; codeWrapper.classList.remove('hidden'); } 
+                    else { codeWrapper.classList.add('hidden'); }
+                }
+                btn.onclick = () => { modal.classList.add('hidden'); if (callback) callback(); };
+                modal.classList.remove('hidden');
+            }
+        };
+
+        // --- INICIO DEL JUEGO ---
+        window.onload = () => {
+            const splash = document.getElementById('splash-screen');
+            const gameContainer = document.getElementById('game-container');
+            
+            setTimeout(() => {
+                splash.classList.add('opacity-0', 'pointer-events-none');
+                gameContainer.classList.remove('hidden');
+                document.body.style.overflow = 'auto';
+                
+                splash.addEventListener('transitionend', () => {
+                     game.init();
+                     splash.remove(); 
+                }, { once: true });
+            }, 2500); // Tiempo de carga reducido
+        };
+    </script>
+</body>
+</html>
